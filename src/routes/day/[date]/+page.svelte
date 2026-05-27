@@ -1,12 +1,73 @@
 <script lang="ts">
-	import { ClipboardList, Plus, Trash2 } from 'lucide-svelte';
+	import { ClipboardList, Pencil, Plus, Search, Trash2 } from 'lucide-svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
+	import type { ExerciseCatalogItem } from '$lib/exercise-catalog';
+	import type { BodyPart, Equipment } from '$lib/server/constants';
 
 	let { data, form } = $props();
 	let setRows = $state([0, 1, 2]);
+	let selectedBodyPart = $state<BodyPart>('chest');
+	let selectedEquipment = $state('all');
+	let selectedExerciseName = $state('');
+	let manualMode = $state(false);
+
+	type ExerciseOption = ExerciseCatalogItem & { source: 'saved' | 'catalog' };
+
+	let savedExerciseItems = $derived<ExerciseOption[]>(
+		data.exerciseLibrary.map((exercise) => ({
+			name: exercise.name,
+			bodyPart: exercise.bodyPart as BodyPart,
+			equipment: exercise.equipment as Equipment,
+			source: 'saved'
+		}))
+	);
+
+	let catalogItems = $derived<ExerciseOption[]>(
+		data.catalog.map((exercise) => ({ ...exercise, source: 'catalog' }))
+	);
+
+	let exerciseOptions = $derived.by(() => {
+		const byName = new Map<string, ExerciseOption>();
+
+		for (const exercise of [...savedExerciseItems, ...catalogItems]) {
+			if (!byName.has(exercise.name)) byName.set(exercise.name, exercise);
+		}
+
+		return [...byName.values()];
+	});
+
+	let filteredExercises = $derived(
+		exerciseOptions.filter(
+			(exercise) =>
+				exercise.bodyPart === selectedBodyPart &&
+				(selectedEquipment === 'all' || exercise.equipment === selectedEquipment)
+		)
+	);
+
+	let selectedExercise = $derived(
+		exerciseOptions.find((exercise) => exercise.name === selectedExerciseName)
+	);
+
+	let selectedNameValue = $derived(manualMode ? '' : (selectedExercise?.name ?? ''));
+	let selectedBodyPartValue = $derived(selectedExercise?.bodyPart ?? selectedBodyPart);
+	let selectedEquipmentValue = $derived(
+		selectedExercise?.equipment ?? (selectedEquipment === 'all' ? 'barbell' : selectedEquipment)
+	);
 
 	const addSetRow = () => {
 		setRows = [...setRows, setRows.length];
+	};
+
+	const chooseExercise = (exercise: ExerciseOption) => {
+		selectedExerciseName = exercise.name;
+		selectedBodyPart = exercise.bodyPart;
+		selectedEquipment = exercise.equipment;
+		manualMode = false;
+	};
+
+	const enableManualMode = () => {
+		manualMode = true;
+		selectedExerciseName = '';
 	};
 </script>
 
@@ -104,47 +165,92 @@
 			</div>
 
 			<form method="POST" action="?/addExercise" class="space-y-4">
-				<label class="block">
-					<span class="mb-1 block text-xs font-medium text-slate-500">动作名</span>
-					<input
-						name="name"
-						list="exercise-list"
-						placeholder="例如：卧推"
-						class="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
-						required
-					/>
-					<datalist id="exercise-list">
-						{#each data.exerciseLibrary as exercise}
-							<option value={exercise.name}></option>
-						{/each}
-					</datalist>
-				</label>
+				<input type="hidden" name="bodyPart" value={selectedBodyPartValue} />
+				<input type="hidden" name="equipment" value={selectedEquipmentValue} />
 
-				<div class="grid grid-cols-2 gap-3">
-					<label class="block">
-						<span class="mb-1 block text-xs font-medium text-slate-500">训练部位</span>
-						<select
-							name="bodyPart"
-							class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-950"
-						>
-							{#each data.options.bodyParts as option}
-								<option value={option.value}>{option.label}</option>
-							{/each}
-						</select>
-					</label>
+				<div class="space-y-3">
+					<div class="flex items-center gap-2 text-xs font-medium text-slate-500">
+						<Search size={14} />
+						<span>选择常用动作</span>
+					</div>
 
-					<label class="block">
-						<span class="mb-1 block text-xs font-medium text-slate-500">器械</span>
-						<select
-							name="equipment"
-							class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-950"
-						>
-							{#each data.options.equipment as option}
-								<option value={option.value}>{option.label}</option>
+					<div class="grid grid-cols-2 gap-3">
+						<label class="block">
+							<span class="mb-1 block text-xs font-medium text-slate-500">训练部位</span>
+							<select
+								bind:value={selectedBodyPart}
+								class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-950"
+							>
+								{#each data.options.bodyParts as option}
+									<option value={option.value}>{option.label}</option>
+								{/each}
+							</select>
+						</label>
+
+						<label class="block">
+							<span class="mb-1 block text-xs font-medium text-slate-500">器械</span>
+							<select
+								bind:value={selectedEquipment}
+								class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-950"
+							>
+								<option value="all">全部器械</option>
+								{#each data.options.equipment as option}
+									<option value={option.value}>{option.label}</option>
+								{/each}
+							</select>
+						</label>
+					</div>
+
+					<div class="max-h-56 space-y-2 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2">
+						{#if filteredExercises.length === 0}
+							<div class="rounded-lg bg-white p-3 text-sm text-slate-500">这个分类下暂时没有内置动作。</div>
+						{:else}
+							{#each filteredExercises as exercise}
+								<button
+									type="button"
+									onclick={() => chooseExercise(exercise)}
+									class={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm transition ${
+										selectedExerciseName === exercise.name
+											? 'border-slate-950 bg-white text-slate-950 shadow-sm'
+											: 'border-transparent bg-white text-slate-700 hover:border-slate-200'
+									}`}
+								>
+									<span class="font-medium">{exercise.name}</span>
+									<span class="text-xs text-slate-400">{exercise.source === 'saved' ? '已用过' : '常用'}</span>
+								</button>
 							{/each}
-						</select>
-					</label>
+						{/if}
+					</div>
+
+					<button
+						type="button"
+						onclick={enableManualMode}
+						class="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+					>
+						<Pencil size={14} />
+						手动输入新动作
+					</button>
 				</div>
+
+				{#if manualMode}
+					<label class="block">
+						<span class="mb-1 block text-xs font-medium text-slate-500">新动作名</span>
+						<input
+							name="name"
+							placeholder="例如：器械夹胸"
+							class="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
+							required
+						/>
+					</label>
+				{:else}
+					<input type="hidden" name="name" value={selectedNameValue} />
+					<div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+						<div class="text-xs font-medium text-slate-500">已选动作</div>
+						<div class="mt-1 text-sm font-semibold text-slate-950">
+							{selectedExercise?.name ?? '请先选择一个动作'}
+						</div>
+					</div>
+				{/if}
 
 				<label class="block">
 					<span class="mb-1 block text-xs font-medium text-slate-500">动作备注</span>
@@ -169,28 +275,40 @@
 					</div>
 
 					{#each setRows as row, index}
-						<div class="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_1.2fr]">
-							<input
-								name="weight"
-								type="number"
-								min="0"
-								step="0.5"
-								placeholder={`第 ${index + 1} 组 kg`}
-								class="h-10 min-w-0 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
-							/>
-							<input
-								name="reps"
-								type="number"
-								min="1"
-								step="1"
-								placeholder="次数"
-								class="h-10 min-w-0 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
-							/>
-							<input
-								name="setNote"
-								placeholder="备注"
-								class="col-span-2 h-10 min-w-0 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950 sm:col-span-1"
-							/>
+						<div class="grid min-w-0 grid-cols-[2.25rem_1fr_1fr] gap-2 sm:grid-cols-[2.25rem_1fr_1fr_1.2fr]">
+							<div class="flex h-10 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold text-slate-500">
+								{index + 1}
+							</div>
+							<label class="min-w-0">
+								<span class="sr-only">重量 kg</span>
+								<input
+									name="weight"
+									type="number"
+									min="0"
+									step="0.5"
+									placeholder="重量 kg"
+									class="h-10 min-w-0 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
+								/>
+							</label>
+							<label class="min-w-0">
+								<span class="sr-only">次数</span>
+								<input
+									name="reps"
+									type="number"
+									min="1"
+									step="1"
+									placeholder="次数"
+									class="h-10 min-w-0 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
+								/>
+							</label>
+							<label class="col-span-3 min-w-0 sm:col-span-1">
+								<span class="sr-only">备注</span>
+								<input
+									name="setNote"
+									placeholder="备注"
+									class="h-10 min-w-0 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
+								/>
+							</label>
 						</div>
 					{/each}
 				</div>

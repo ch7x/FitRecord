@@ -1,4 +1,5 @@
 import { error } from '@sveltejs/kit';
+import { exerciseCatalog } from '$lib/exercise-catalog';
 import {
 	addExerciseToDay,
 	deleteDayExercise,
@@ -15,6 +16,7 @@ export const load = ({ params }) => {
 	return {
 		date,
 		options: getOptions(),
+		catalog: exerciseCatalog,
 		exerciseLibrary: getExerciseLibrary(),
 		record: getDayRecord(date)
 	};
@@ -30,4 +32,3 @@ export const actions = {
 		return deleteDayExercise(params.date, formData);
 	}
 };
-
