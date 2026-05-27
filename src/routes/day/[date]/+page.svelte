@@ -169,14 +169,14 @@
 					</div>
 
 					{#each setRows as row, index}
-						<div class="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_1.2fr]">
+						<div class="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_1.2fr]">
 							<input
 								name="weight"
 								type="number"
 								min="0"
 								step="0.5"
 								placeholder={`第 ${index + 1} 组 kg`}
-								class="h-10 rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
+								class="h-10 min-w-0 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
 							/>
 							<input
 								name="reps"
@@ -184,12 +184,12 @@
 								min="1"
 								step="1"
 								placeholder="次数"
-								class="h-10 rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
+								class="h-10 min-w-0 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
 							/>
 							<input
 								name="setNote"
 								placeholder="备注"
-								class="col-span-2 h-10 rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950 sm:col-span-1"
+								class="col-span-2 h-10 min-w-0 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950 sm:col-span-1"
 							/>
 						</div>
 					{/each}
