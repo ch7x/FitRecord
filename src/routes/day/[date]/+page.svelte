@@ -134,9 +134,6 @@
 									<IconBadge name={exercise.equipment} label={exercise.equipmentLabel} />
 									<IconBadge name={exercise.bodyPart} label={exercise.bodyPartLabel} tone="blue" />
 								</div>
-								{#if exercise.note}
-									<p class="mt-2 text-sm text-slate-500">{exercise.note}</p>
-								{/if}
 							</div>
 
 							<form method="POST" action="?/deleteExercise" class="w-auto">
@@ -157,7 +154,6 @@
 										<th class="px-3 py-2">组</th>
 										<th class="px-3 py-2">重量</th>
 										<th class="px-3 py-2">次数</th>
-										<th class="px-3 py-2">备注</th>
 									</tr>
 								</thead>
 								<tbody class="divide-y divide-slate-100">
@@ -166,7 +162,6 @@
 											<td class="px-3 py-2 font-medium text-slate-600">{set.setIndex}</td>
 											<td class="px-3 py-2 text-slate-950">{set.weight} kg</td>
 											<td class="px-3 py-2 text-slate-950">{set.reps}</td>
-											<td class="px-3 py-2 text-slate-500">{set.note || '-'}</td>
 										</tr>
 									{/each}
 								</tbody>
