@@ -80,7 +80,6 @@
 	const chooseExercise = (exercise: ExerciseOption) => {
 		selectedExerciseName = exercise.name;
 		selectedBodyPart = exercise.bodyPart;
-		selectedEquipment = exercise.equipment;
 		manualMode = false;
 	};
 
