@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-svelte';
+	import { ChevronLeft, ChevronRight, Plus } from 'lucide-svelte';
 
 	let { data } = $props();
 
@@ -65,23 +65,6 @@
 			</div>
 		</div>
 
-		<form method="POST" action="?/openDate" class="mt-5 flex flex-col gap-3 sm:max-w-md sm:flex-row">
-			<label class="flex-1">
-				<span class="mb-1 block text-xs font-medium text-slate-500">跳转日期</span>
-				<input
-					name="date"
-					type="date"
-					value={data.today}
-					class="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-950"
-				/>
-			</label>
-			<button
-				class="mt-auto inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-950 hover:bg-slate-50"
-			>
-				<CalendarDays size={17} />
-				打开
-			</button>
-		</form>
 	</div>
 
 	<div class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
@@ -142,4 +125,3 @@
 		</div>
 	</div>
 </section>
-
