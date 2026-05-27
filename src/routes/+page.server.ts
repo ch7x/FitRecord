@@ -1,10 +1,12 @@
 import { redirect } from '@sveltejs/kit';
-import { getRecentDays, todayKey, validateDateKey } from '$lib/server/workouts';
+import { getMonthCalendar, monthKey, todayKey, validateDateKey } from '$lib/server/workouts';
 
-export const load = () => {
+export const load = ({ url }) => {
+	const month = url.searchParams.get('month') ?? monthKey();
+
 	return {
 		today: todayKey(),
-		recentDays: getRecentDays()
+		calendar: getMonthCalendar(month)
 	};
 };
 
@@ -21,4 +23,3 @@ export const actions = {
 		throw redirect(303, `/day/${validDate}`);
 	}
 };
-

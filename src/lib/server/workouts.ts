@@ -39,7 +39,21 @@ export type DayExerciseRecord = {
 	}>;
 };
 
+export type CalendarDaySummary = {
+	date: string;
+	day: number;
+	isCurrentMonth: boolean;
+	isToday: boolean;
+	exerciseCount: number;
+	setCount: number;
+	volume: number;
+	bodyParts: string[];
+	bodyPartLabels: string[];
+};
+
 export const todayKey = () => new Date().toISOString().slice(0, 10);
+
+export const monthKey = (date = todayKey()) => date.slice(0, 7);
 
 export const validateDateKey = (date: string) => {
 	const parsed = dateSchema.safeParse(date);
@@ -90,6 +104,96 @@ export const getRecentDays = () => {
 		setCount: number;
 		volume: number;
 	}>;
+};
+
+export const getMonthCalendar = (month: string) => {
+	const validMonth = /^\d{4}-\d{2}$/.test(month) ? month : monthKey();
+	const [year, monthNumber] = validMonth.split('-').map(Number);
+	const monthStart = new Date(Date.UTC(year, monthNumber - 1, 1));
+	const monthEnd = new Date(Date.UTC(year, monthNumber, 0));
+	const gridStart = new Date(monthStart);
+	const firstDay = monthStart.getUTCDay() || 7;
+	gridStart.setUTCDate(monthStart.getUTCDate() - firstDay + 1);
+
+	const gridEnd = new Date(monthEnd);
+	const lastDay = monthEnd.getUTCDay() || 7;
+	gridEnd.setUTCDate(monthEnd.getUTCDate() + (7 - lastDay));
+
+	const startKey = gridStart.toISOString().slice(0, 10);
+	const endKey = gridEnd.toISOString().slice(0, 10);
+
+	const rows = sqlite
+		.prepare(
+			`
+			SELECT
+				td.date,
+				COUNT(DISTINCT de.id) AS exerciseCount,
+				COUNT(es.id) AS setCount,
+				COALESCE(SUM(es.weight * es.reps), 0) AS volume,
+				GROUP_CONCAT(DISTINCT e.body_part) AS bodyParts
+			FROM training_days td
+			LEFT JOIN day_exercises de ON de.training_day_id = td.id
+			LEFT JOIN exercises e ON e.id = de.exercise_id
+			LEFT JOIN exercise_sets es ON es.day_exercise_id = de.id
+			WHERE td.date BETWEEN ? AND ?
+			GROUP BY td.id
+			`
+		)
+		.all(startKey, endKey) as Array<{
+		date: string;
+		exerciseCount: number;
+		setCount: number;
+		volume: number;
+		bodyParts: string | null;
+	}>;
+
+	const summaryByDate = new Map(rows.map((row) => [row.date, row]));
+	const days: CalendarDaySummary[] = [];
+	const cursor = new Date(gridStart);
+
+	while (cursor <= gridEnd) {
+		const date = cursor.toISOString().slice(0, 10);
+		const summary = summaryByDate.get(date);
+		const bodyParts = summary?.bodyParts?.split(',').filter(Boolean) ?? [];
+
+		days.push({
+			date,
+			day: cursor.getUTCDate(),
+			isCurrentMonth: date.startsWith(validMonth),
+			isToday: date === todayKey(),
+			exerciseCount: summary?.exerciseCount ?? 0,
+			setCount: summary?.setCount ?? 0,
+			volume: summary?.volume ?? 0,
+			bodyParts,
+			bodyPartLabels: bodyParts.map((part) => bodyPartLabels[part] ?? part)
+		});
+
+		cursor.setUTCDate(cursor.getUTCDate() + 1);
+	}
+
+	const previousMonth = new Date(Date.UTC(year, monthNumber - 2, 1)).toISOString().slice(0, 7);
+	const nextMonth = new Date(Date.UTC(year, monthNumber, 1)).toISOString().slice(0, 7);
+
+	return {
+		month: validMonth,
+		year,
+		monthNumber,
+		label: `${year}年${monthNumber}月`,
+		previousMonth,
+		nextMonth,
+		weeks: Array.from({ length: Math.ceil(days.length / 7) }, (_, index) =>
+			days.slice(index * 7, index * 7 + 7)
+		),
+		summary: {
+			trainingDays: days.filter((day) => day.isCurrentMonth && day.exerciseCount > 0).length,
+			setCount: days
+				.filter((day) => day.isCurrentMonth)
+				.reduce((total, day) => total + day.setCount, 0),
+			volume: days
+				.filter((day) => day.isCurrentMonth)
+				.reduce((total, day) => total + day.volume, 0)
+		}
+	};
 };
 
 export const getDayRecord = (date: string) => {
