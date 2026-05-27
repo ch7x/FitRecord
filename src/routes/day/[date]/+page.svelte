@@ -1,11 +1,16 @@
 <script lang="ts">
-	import { ClipboardList, Pencil, Plus, Search, Trash2 } from 'lucide-svelte';
+	import { ClipboardList, Copy, Pencil, Plus, Search, Trash2 } from 'lucide-svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import type { ExerciseCatalogItem } from '$lib/exercise-catalog';
 	import type { BodyPart, Equipment } from '$lib/server/constants';
 
 	let { data, form } = $props();
-	let setRows = $state([0, 1, 2]);
+	let nextSetRowId = 4;
+	let setRows = $state([
+		{ id: 1, weight: '', reps: '' },
+		{ id: 2, weight: '', reps: '' },
+		{ id: 3, weight: '', reps: '' }
+	]);
 	let selectedBodyPart = $state<BodyPart>('chest');
 	let selectedEquipment = $state('all');
 	let selectedExerciseName = $state('');
@@ -55,7 +60,21 @@
 	);
 
 	const addSetRow = () => {
-		setRows = [...setRows, setRows.length];
+		setRows = [...setRows, { id: nextSetRowId++, weight: '', reps: '' }];
+	};
+
+	const copySetRow = (index: number) => {
+		const source = setRows[index];
+		setRows = [
+			...setRows.slice(0, index + 1),
+			{ id: nextSetRowId++, weight: source.weight, reps: source.reps },
+			...setRows.slice(index + 1)
+		];
+	};
+
+	const deleteSetRow = (id: number) => {
+		if (setRows.length === 1) return;
+		setRows = setRows.filter((row) => row.id !== id);
 	};
 
 	const chooseExercise = (exercise: ExerciseOption) => {
@@ -252,14 +271,7 @@
 					</div>
 				{/if}
 
-				<label class="block">
-					<span class="mb-1 block text-xs font-medium text-slate-500">动作备注</span>
-					<input
-						name="note"
-						placeholder="可选"
-						class="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
-					/>
-				</label>
+				<input type="hidden" name="note" value="" />
 
 				<div class="space-y-2">
 					<div class="flex items-center justify-between">
@@ -274,8 +286,8 @@
 						</button>
 					</div>
 
-					{#each setRows as row, index}
-						<div class="grid min-w-0 grid-cols-[2.25rem_1fr_1fr] gap-2 sm:grid-cols-[2.25rem_1fr_1fr_1.2fr]">
+					{#each setRows as row, index (row.id)}
+						<div class="grid min-w-0 grid-cols-[2.25rem_1fr_1fr_auto] gap-2">
 							<div class="flex h-10 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold text-slate-500">
 								{index + 1}
 							</div>
@@ -287,6 +299,7 @@
 									min="0"
 									step="0.5"
 									placeholder="重量 kg"
+									bind:value={row.weight}
 									class="h-10 min-w-0 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
 								/>
 							</label>
@@ -298,17 +311,30 @@
 									min="1"
 									step="1"
 									placeholder="次数"
+									bind:value={row.reps}
 									class="h-10 min-w-0 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
 								/>
 							</label>
-							<label class="col-span-3 min-w-0 sm:col-span-1">
-								<span class="sr-only">备注</span>
-								<input
-									name="setNote"
-									placeholder="备注"
-									class="h-10 min-w-0 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
-								/>
-							</label>
+							<input type="hidden" name="setNote" value="" />
+							<div class="flex gap-1">
+								<button
+									type="button"
+									onclick={() => copySetRow(index)}
+									class="inline-flex size-10 items-center justify-center rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50"
+									aria-label="复制这一组"
+								>
+									<Copy size={15} />
+								</button>
+								<button
+									type="button"
+									onclick={() => deleteSetRow(row.id)}
+									class="inline-flex size-10 items-center justify-center rounded-lg border border-slate-300 text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+									aria-label="删除这一组"
+									disabled={setRows.length === 1}
+								>
+									<Trash2 size={15} />
+								</button>
+							</div>
 						</div>
 					{/each}
 				</div>
