@@ -15,16 +15,39 @@
 					{data.calendar.label}
 				</h1>
 				<p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-					按月查看每天练了什么。点击任意日期进入详情，添加动作和组数。
+					{data.calendar.description}
 				</p>
 			</div>
 
 			<div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+				<div class="inline-flex h-11 items-center rounded-lg bg-slate-100 p-1 text-sm font-semibold text-slate-600">
+					<a
+						href={data.calendar.switchToWeekHref}
+						class={`inline-flex h-9 items-center justify-center rounded-md px-4 transition ${
+							data.calendar.view === 'week'
+								? 'bg-white text-slate-950 shadow-sm'
+								: 'hover:text-slate-950'
+						}`}
+					>
+						按周
+					</a>
+					<a
+						href={data.calendar.switchToMonthHref}
+						class={`inline-flex h-9 items-center justify-center rounded-md px-4 transition ${
+							data.calendar.view === 'month'
+								? 'bg-white text-slate-950 shadow-sm'
+								: 'hover:text-slate-950'
+						}`}
+					>
+						按月
+					</a>
+				</div>
+
 				<div class="inline-flex h-11 items-center rounded-lg border border-slate-300 bg-white shadow-sm">
 					<a
-						href={`/?month=${data.calendar.previousMonth}`}
+						href={data.calendar.previousHref}
 						class="inline-flex size-10 items-center justify-center text-slate-600 hover:text-slate-950"
-						aria-label="上个月"
+						aria-label={data.calendar.previousAriaLabel}
 					>
 						<ChevronLeft size={18} />
 					</a>
@@ -32,9 +55,9 @@
 						{data.calendar.label}
 					</div>
 					<a
-						href={`/?month=${data.calendar.nextMonth}`}
+						href={data.calendar.nextHref}
 						class="inline-flex size-10 items-center justify-center text-slate-600 hover:text-slate-950"
-						aria-label="下个月"
+						aria-label={data.calendar.nextAriaLabel}
 					>
 						<ChevronRight size={18} />
 					</a>
@@ -52,15 +75,15 @@
 
 		<div class="mt-5 grid gap-3 sm:grid-cols-3">
 			<div class="rounded-lg bg-slate-50 p-3">
-				<div class="text-xs font-medium text-slate-500">本月训练</div>
+				<div class="text-xs font-medium text-slate-500">{data.calendar.periodLabel}训练</div>
 				<div class="mt-1 text-xl font-semibold text-slate-950">{data.calendar.summary.trainingDays} 天</div>
 			</div>
 			<div class="rounded-lg bg-slate-50 p-3">
-				<div class="text-xs font-medium text-slate-500">本月组数</div>
+				<div class="text-xs font-medium text-slate-500">{data.calendar.periodLabel}组数</div>
 				<div class="mt-1 text-xl font-semibold text-slate-950">{data.calendar.summary.setCount} 组</div>
 			</div>
 			<div class="rounded-lg bg-slate-50 p-3">
-				<div class="text-xs font-medium text-slate-500">本月训练量</div>
+				<div class="text-xs font-medium text-slate-500">{data.calendar.periodLabel}训练量</div>
 				<div class="mt-1 text-xl font-semibold text-slate-950">{Math.round(data.calendar.summary.volume)} kg</div>
 			</div>
 		</div>
@@ -81,7 +104,7 @@
 						<a
 							href={`/day/${day.date}`}
 							class={`group min-h-28 rounded-lg border p-2 transition sm:min-h-36 ${
-								day.isCurrentMonth
+								day.isCurrentPeriod
 									? 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
 									: 'border-slate-100 bg-slate-50/70 text-slate-300'
 							} ${day.isToday ? 'ring-2 ring-slate-950 ring-offset-2' : ''}`}
@@ -89,7 +112,7 @@
 							<div class="flex items-center justify-between">
 								<span
 									class={`text-lg font-semibold ${
-										day.isCurrentMonth ? 'text-slate-950' : 'text-slate-300'
+										day.isCurrentPeriod ? 'text-slate-950' : 'text-slate-300'
 									}`}
 								>
 									{day.isToday ? '今' : day.day}
